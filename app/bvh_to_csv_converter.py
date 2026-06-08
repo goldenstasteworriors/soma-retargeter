@@ -438,10 +438,22 @@ class Viewer:
         retarget_source = self.config['retarget_source']
         retarget_solver = self.config['retargeter']
         retarget_target = self.config["retarget_target"]
+        retargeter_config = None
+        retargeter_config_path = self.config.get("retargeter_config")
+        if retargeter_config_path:
+            retargeter_config_path = pathlib.Path(retargeter_config_path)
+            if not retargeter_config_path.is_absolute():
+                retargeter_config_path = io_utils.get_config_file(retargeter_config_path)
+            retargeter_config = io_utils.load_json(retargeter_config_path)
+
         retarget_pipeline = None
         if (retarget_solver == 'Newton'):
             import soma_retargeter.pipelines.newton_pipeline as newton_pipeline
-            retarget_pipeline = newton_pipeline.NewtonPipeline(bvh_skeleton, retarget_source, retarget_target)
+            retarget_pipeline = newton_pipeline.NewtonPipeline(
+                bvh_skeleton,
+                retarget_source,
+                retarget_target,
+                retarget_config=retargeter_config)
         if retarget_pipeline is None:
             print(f"[ERROR]: Invalid retarget solver selected [{retarget_solver}]. Use 'Newton'.")
             exit(-1)

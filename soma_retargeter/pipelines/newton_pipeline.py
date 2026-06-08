@@ -5,6 +5,7 @@ import warp as wp
 import numpy as np
 import newton
 import newton.ik as ik
+from pathlib import Path
 from tqdm import trange
 
 import soma_retargeter.assets.bvh as bvh_utils
@@ -25,6 +26,13 @@ _DEFAULT_JOINT_LIMIT_OBJECTIVE_WEIGHT = 10.0
 _DEFAULT_SMOOTH_JOINT_FILTER_OBJECTIVE_WEIGHT = 5.5
 _DEFAULT_NUM_INITIALIZATION_FRAMES = 10
 _DEFAULT_NUM_STABILIZATION_FRAMES = 5
+
+
+def _resolve_config_path(path: str):
+    path = Path(path)
+    if path.is_absolute():
+        return path
+    return io_utils.get_config_file(path)
 
 
 class NewtonPipeline:
@@ -77,7 +85,9 @@ class NewtonPipeline:
             self.robot_builder = build_robot_builder(self.target_type)
 
             self.human_robot_scaler = HumanToRobotScaler(
-                skeleton, retargeter_config['model_height'], io_utils.get_config_file(retargeter_config['human_robot_scaler_config']))
+                skeleton,
+                retargeter_config['model_height'],
+                _resolve_config_path(retargeter_config['human_robot_scaler_config']))
 
             self.num_body_count = self.robot_builder.body_count
             self.num_dofs = self.robot_builder.joint_dof_count
@@ -104,14 +114,14 @@ class NewtonPipeline:
                 self.mapped_joints.index("LeftFoot"),
                 self.mapped_joints.index("RightFoot")]
 
-            self.feet_stabilizer = FeetStabilizer(io_utils.get_config_file(retargeter_config['feet_stabilizer_config']))
+            self.feet_stabilizer = FeetStabilizer(_resolve_config_path(retargeter_config['feet_stabilizer_config']))
             self.joint_limit_clamper = JointLimitClamper(self.ik_model)
 
             self.initialization_pose = None
             self.num_initialization_frames = 0
             self.num_stabilization_frames = 0
             if (retargeter_config['initialization_pose']):
-                init_skel, init_anim = bvh_utils.load_bvh(io_utils.get_config_file(retargeter_config['initialization_pose']))
+                init_skel, init_anim = bvh_utils.load_bvh(_resolve_config_path(retargeter_config['initialization_pose']))
                 self.initialization_pose = SkeletonInstance(init_skel, [0, 0, 0], wp.transform_identity())
                 self.initialization_pose.set_local_transforms(init_anim.get_local_transforms(0))
                 self.num_initialization_frames = retargeter_config.get('num_initialization_frames', _DEFAULT_NUM_INITIALIZATION_FRAMES)
