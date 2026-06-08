@@ -1,0 +1,9 @@
+{
+    "import_folder": "assets/motions/bvh",
+    "export_folder": "outputs/h2_csv",
+    "batch_size": 16,
+    "retargeter": "Newton",
+    "retarget_source": "soma",
+    "retarget_target": "unitree_h2",
+    "retarget_source_facing_direction": "Mujoco"
+}

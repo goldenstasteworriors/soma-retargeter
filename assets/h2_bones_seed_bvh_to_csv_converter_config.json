@@ -1,0 +1,9 @@
+{
+    "import_folder": "/home/ykj/Downloads/dataset/bones-seed/soma_uniform/bvh",
+    "export_folder": "/home/ykj/Downloads/dataset/bones-seed/h2/csv",
+    "batch_size": 16,
+    "retargeter": "Newton",
+    "retarget_source": "soma",
+    "retarget_target": "unitree_h2",
+    "retarget_source_facing_direction": "Mujoco"
+}
