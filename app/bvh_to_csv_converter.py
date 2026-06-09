@@ -461,38 +461,45 @@ class Viewer:
         nb_retargeted_motions = 0
         start_time = time.time()
 
-        for i, batch in enumerate(batches):
-            print(f"[INFO]: Processing batch {i+1} of {len(batches)}")
-            
-            print(f"[INFO]: Loading {len(batch)} animations...")
-            animations = []
-            for file_path in batch:
-                _, animation = bvh_utils.load_bvh(file_path, bvh_skeleton)
-                # All animations should be on the same skeleton
-                assert expected_num_joints == animation.skeleton.num_joints, (
-                    f"[ERROR]: Unexpected number of joints in input motion. Expected {expected_num_joints}, "
-                    f"got {animation.skeleton.num_joints}")
-                
-                animations.append(animation)
-            assert(len(animations) == len(batch))
+        with trange(
+            len(bvh_files),
+            desc="[INFO]: Retargeting animations",
+            unit="motion",
+            initial=nb_retargeted_motions,
+        ) as motion_progress:
+            for i, batch in enumerate(batches):
+                print(f"[INFO]: Processing batch {i+1} of {len(batches)}")
 
-            if (len(animations) > 0):
-                print("[INFO]: Retargeting...")
-                retarget_pipeline.clear()
-                retarget_pipeline.add_input_motions(animations, [bvh_tx_converter] * len(animations), True)
-                csv_buffers = retarget_pipeline.execute()
+                print(f"[INFO]: Loading {len(batch)} animations...")
+                animations = []
+                for file_path in batch:
+                    _, animation = bvh_utils.load_bvh(file_path, bvh_skeleton)
+                    # All animations should be on the same skeleton
+                    assert expected_num_joints == animation.skeleton.num_joints, (
+                        f"[ERROR]: Unexpected number of joints in input motion. Expected {expected_num_joints}, "
+                        f"got {animation.skeleton.num_joints}")
 
-                assert(len(csv_buffers) == len(animations))
-                for i in trange(len(csv_buffers), desc="[INFO]: Exporting CSV Files"):
-                    csv_buffer = csv_buffers[i]
-                    dst_path = export_path / pathlib.Path(batch[i]).relative_to(import_path).with_suffix(".csv")
-                    dst_path.parent.mkdir(parents=True, exist_ok=True)
-                    csv_utils.save_csv(
-                        dst_path,
-                        csv_buffer,
-                        csv_utils.get_csv_config(retarget_target))
+                    animations.append(animation)
+                assert(len(animations) == len(batch))
 
-            nb_retargeted_motions += len(batch)
+                if (len(animations) > 0):
+                    print("[INFO]: Retargeting...")
+                    retarget_pipeline.clear()
+                    retarget_pipeline.add_input_motions(animations, [bvh_tx_converter] * len(animations), True)
+                    csv_buffers = retarget_pipeline.execute()
+
+                    assert(len(csv_buffers) == len(animations))
+                    for j in trange(len(csv_buffers), desc="[INFO]: Exporting CSV Files"):
+                        csv_buffer = csv_buffers[j]
+                        dst_path = export_path / pathlib.Path(batch[j]).relative_to(import_path).with_suffix(".csv")
+                        dst_path.parent.mkdir(parents=True, exist_ok=True)
+                        csv_utils.save_csv(
+                            dst_path,
+                            csv_buffer,
+                            csv_utils.get_csv_config(retarget_target))
+
+                nb_retargeted_motions += len(batch)
+                motion_progress.update(len(batch))
 
         elapsed_time = time.time() - start_time
         elapsed_str = f"{int(elapsed_time // 3600):02d}:{int((elapsed_time % 3600) // 60):02d}:{int(elapsed_time % 60):02d}"
