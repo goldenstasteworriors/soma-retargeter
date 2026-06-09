@@ -440,6 +440,18 @@ class Viewer:
             bvh_files = bvh_files[shard_index::shard_count]
             print(f"[INFO]: Processing file shard {shard_index + 1}/{shard_count} with {len(bvh_files)} motions.")
 
+        if self.config.get("skip_existing", False):
+            num_before_skip = len(bvh_files)
+            bvh_files = [
+                path for path in bvh_files
+                if not (export_path / path.relative_to(import_path).with_suffix(".csv")).exists()
+            ]
+            print(f"[INFO]: Skipping {num_before_skip - len(bvh_files)} existing CSV files.")
+
+        if len(bvh_files) == 0:
+            print("[INFO]: No motions left to retarget.")
+            return
+
         batches = [bvh_files[i:i + batch_size] for i in range(0, len(bvh_files), batch_size)]
         
         # All skeletons should be the same, load one as our reference
