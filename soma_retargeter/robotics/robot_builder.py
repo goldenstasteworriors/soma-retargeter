@@ -3,6 +3,7 @@
 
 from pathlib import Path
 import tempfile
+import os
 
 import newton
 
@@ -10,7 +11,22 @@ import soma_retargeter.pipelines.utils as pipeline_utils
 
 
 def _sonic_h2_paths():
-    sonic_root = Path("/home/ykj/project/SONICMJ/GR00T-WholeBodyControl")
+    candidate_roots = []
+    env_root = os.environ.get("SONICMJ_ROOT")
+    if env_root:
+        candidate_roots.append(Path(env_root))
+    candidate_roots.extend([
+        Path("/home/ykj/project/SONICMJ/GR00T-WholeBodyControl"),
+        Path("/home/nvme02/GR00T/GR00T"),
+    ])
+
+    sonic_root = next(
+        (
+            root for root in candidate_roots
+            if (root / "gear_sonic/data/assets/robot_description/mjcf/h2.xml").exists()
+        ),
+        candidate_roots[0],
+    )
     mjcf_path = sonic_root / "gear_sonic/data/assets/robot_description/mjcf/h2.xml"
     mesh_dir = sonic_root / "gear_sonic/data/assets/robot_description/urdf/h2/meshes"
     return mjcf_path, mesh_dir

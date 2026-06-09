@@ -426,6 +426,20 @@ class Viewer:
 
         # Sort files based on size (largest first)
         bvh_files.sort(key=lambda p: p.stat().st_size, reverse=True)
+        if self.config.get("reverse_file_order", False):
+            bvh_files.reverse()
+
+        shard_count = int(self.config.get("file_shard_count", 1))
+        shard_index = int(self.config.get("file_shard_index", 0))
+        if shard_count < 1:
+            raise ValueError(f"[ERROR]: file_shard_count must be >= 1, got {shard_count}.")
+        if shard_index < 0 or shard_index >= shard_count:
+            raise ValueError(
+                f"[ERROR]: file_shard_index must be in [0, {shard_count}), got {shard_index}.")
+        if shard_count > 1:
+            bvh_files = bvh_files[shard_index::shard_count]
+            print(f"[INFO]: Processing file shard {shard_index + 1}/{shard_count} with {len(bvh_files)} motions.")
+
         batches = [bvh_files[i:i + batch_size] for i in range(0, len(bvh_files), batch_size)]
         
         # All skeletons should be the same, load one as our reference
